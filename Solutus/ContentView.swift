@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  Solutus
-//
-//  Created by Thiago Monteiro on 10/04/26.
-//
-
 import SwiftUI
 
 struct ContentView: View {

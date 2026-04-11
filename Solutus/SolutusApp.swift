@@ -1,17 +1,13 @@
-//
-//  SolutusApp.swift
-//  Solutus
-//
-//  Created by Thiago Monteiro on 10/04/26.
-//
-
 import SwiftUI
 
 @main
 struct SolutusApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        // App roda sem janela — apenas o overlay invisível
+        Settings {
+            EmptyView()
         }
     }
 }
