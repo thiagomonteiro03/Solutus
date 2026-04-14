@@ -3,6 +3,7 @@ import SwiftUI
 // MARK: - Content Model
 
 enum OverlayContent {
+    case captured(count: Int)
     case loading
     case solution(String)
     case error(String)
@@ -17,7 +18,6 @@ struct OverlayView: View {
 
     var body: some View {
         ZStack {
-            // Fundo vidro fosco
             RoundedRectangle(cornerRadius: 16)
                 .fill(.ultraThinMaterial)
             RoundedRectangle(cornerRadius: 16)
@@ -45,8 +45,7 @@ struct OverlayView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
 
-                Divider()
-                    .opacity(0.4)
+                Divider().opacity(0.4)
 
                 // Body
                 ScrollView {
@@ -56,18 +55,40 @@ struct OverlayView: View {
                 }
             }
         }
-        .frame(width: 420, height: 520)
+        .frame(width: 420, height: frameHeight)
         .shadow(color: .black.opacity(0.35), radius: 24, y: 8)
+        .animation(.easeInOut(duration: 0.2), value: frameHeight)
+    }
+
+    // Altura menor no estado de captura, maior para solução
+    private var frameHeight: CGFloat {
+        switch content {
+        case .captured: return 110
+        case .loading:  return 110
+        default:        return 520
+        }
     }
 
     @ViewBuilder
     private var bodyContent: some View {
         switch content {
+        case .captured(let count):
+            HStack(spacing: 10) {
+                Image(systemName: "photo.stack.fill")
+                    .foregroundStyle(.blue)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(count) tela\(count > 1 ? "s" : "") capturada\(count > 1 ? "s" : "")")
+                        .font(.system(size: 13, weight: .medium))
+                    Text("⌘+Shift+S para mais  ·  ⌘+Shift+↩ para enviar")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
         case .loading:
             HStack(spacing: 10) {
-                ProgressView()
-                    .controlSize(.small)
-                Text("Analisando a tela...")
+                ProgressView().controlSize(.small)
+                Text("Analisando...")
                     .foregroundStyle(.secondary)
                     .font(.system(size: 13))
             }
@@ -91,7 +112,12 @@ struct OverlayView: View {
     }
 }
 
-#Preview {
-    OverlayView(content: .solution("```swift\nfunc twoSum(_ nums: [Int], _ target: Int) -> [Int] {\n    var map = [Int: Int]()\n    for (i, n) in nums.enumerated() {\n        if let j = map[target - n] { return [j, i] }\n        map[n] = i\n    }\n    return []\n}\n```\nComplexidade O(n) usando hash map."), onDismiss: {})
+#Preview("Capturado") {
+    OverlayView(content: .captured(count: 2), onDismiss: {})
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Solução") {
+    OverlayView(content: .solution("Use um hash map para resolver em O(n).\n\n```swift\nfunc twoSum(_ nums: [Int], _ target: Int) -> [Int] {\n    var map = [Int: Int]()\n    for (i, n) in nums.enumerated() {\n        if let j = map[target - n] { return [j, i] }\n        map[n] = i\n    }\n    return []\n}\n```"), onDismiss: {})
         .preferredColorScheme(.dark)
 }

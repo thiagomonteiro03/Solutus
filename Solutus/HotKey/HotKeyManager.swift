@@ -1,19 +1,28 @@
 import AppKit
 import ApplicationServices
 
-/// Registra um atalho global (⌘ + Shift + S) via CGEventTap.
-/// Não precisa de Sandbox — funciona com permissão de Acessibilidade.
+/// Gerencia dois atalhos globais:
+/// - ⌘ + Shift + S     → captura um screenshot e adiciona à fila
+/// - ⌘ + Shift + Enter → envia todos os screenshots capturados para a IA
 final class HotKeyManager: Sendable {
 
     // ⌘ + Shift + S  (keycode 1 = 's')
-    private nonisolated(unsafe) let targetKeyCode: CGKeyCode = 1
+    private nonisolated(unsafe) let captureKeyCode: CGKeyCode = 1
+    // ⌘ + Shift + Enter  (keycode 36 = Return)
+    private nonisolated(unsafe) let sendKeyCode: CGKeyCode = 36
     private nonisolated(unsafe) let targetFlags: CGEventFlags = [.maskCommand, .maskShift]
 
     private nonisolated(unsafe) var eventTap: CFMachPort?
-    private let callback: @MainActor @Sendable () -> Void
 
-    init(callback: @escaping @MainActor @Sendable () -> Void) {
-        self.callback = callback
+    private let onCapture: @MainActor @Sendable () -> Void
+    private let onSend: @MainActor @Sendable () -> Void
+
+    init(
+        onCapture: @escaping @MainActor @Sendable () -> Void,
+        onSend: @escaping @MainActor @Sendable () -> Void
+    ) {
+        self.onCapture = onCapture
+        self.onSend = onSend
     }
 
     // MARK: - Start / Stop
@@ -50,17 +59,16 @@ final class HotKeyManager: Sendable {
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
-        print("HotKeyManager: atalho ⌘+Shift+S ativo.")
+        print("HotKeyManager: atalhos ⌘+Shift+S e ⌘+Shift+Enter ativos.")
     }
 
     func stop() {
         guard let tap = eventTap else { return }
         CGEvent.tapEnable(tap: tap, enable: false)
         eventTap = nil
-        print("HotKeyManager: parado.")
     }
 
-    // MARK: - Evento (chamado pelo C callback — precisa ser nonisolated)
+    // MARK: - Evento
 
     nonisolated private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         guard type == .keyDown else { return Unmanaged.passRetained(event) }
@@ -68,15 +76,24 @@ final class HotKeyManager: Sendable {
         let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
         let flags = event.flags.intersection([.maskCommand, .maskShift, .maskAlternate, .maskControl])
 
-        if keyCode == targetKeyCode && flags == targetFlags {
-            let cb = callback
+        guard flags == targetFlags else { return Unmanaged.passRetained(event) }
+
+        if keyCode == captureKeyCode {
+            let cb = onCapture
             Task { @MainActor in cb() }
-            return nil // consome o evento
+            return nil
         }
+
+        if keyCode == sendKeyCode {
+            let cb = onSend
+            Task { @MainActor in cb() }
+            return nil
+        }
+
         return Unmanaged.passRetained(event)
     }
 
-    // MARK: - Permissão de Acessibilidade
+    // MARK: - Permissão
 
     private func requestAccessibilityIfNeeded() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
