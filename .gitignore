@@ -1,0 +1,22 @@
+# Xcode
+*.xcuserstate
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hmap
+*.ipa
+*.xcarchive
+
+# Scheme compartilhado (contém variáveis de ambiente com API keys)
+*.xcodeproj/xcshareddata/xcschemes/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Credentials / secrets
+*.env
+.env
+secrets.plist
