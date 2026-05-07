@@ -10,7 +10,8 @@ final class LLMService: Sendable {
     static let shared = LLMService()
 
     nonisolated private var apiKey: String {
-        ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
+        guard let ptr = getenv("OPENAI_API_KEY") else { return "" }
+        return String(cString: ptr)
     }
 
     nonisolated private let endpoint = URL(string: "https://api.openai.com/v1/chat/completions")!

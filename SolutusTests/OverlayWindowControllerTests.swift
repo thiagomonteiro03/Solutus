@@ -48,7 +48,7 @@ struct OverlayWindowControllerTests {
         // Core product property: the window MUST NOT appear in screen sharing
         // or recording. If anyone removes that line, this test breaks
         // immediately.
-        #expect(window?.sharingType == .none)
+        #expect(window?.sharingType == NSWindowSharingType(rawValue: 0))
         #expect(window?.level == .floating)
         #expect(window?.isOpaque == false)
         #expect(window?.hasShadow == false)
