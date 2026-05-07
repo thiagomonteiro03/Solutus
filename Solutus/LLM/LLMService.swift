@@ -42,9 +42,27 @@ final class LLMService: Sendable {
             ])
         }
 
-        let prompt = screenshots.count > 1
-            ? "Analise estas \(screenshots.count) telas em conjunto. Se houver um problema de programação, algoritmo ou exercício de código, resolva-o de forma clara e concisa com explicação. Se não houver nenhum algoritmo ou problema de código, diga isso brevemente."
-            : "Analise este screenshot. Se houver um problema de programação, algoritmo ou exercício de código, resolva-o de forma clara e concisa com explicação. Se não houver nenhum algoritmo ou problema de código, diga isso brevemente."
+        let alvo = screenshots.count > 1
+            ? "estas \(screenshots.count) telas em conjunto"
+            : "este screenshot"
+
+        let prompt = """
+        Analyze \(alvo). The ENTIRE response must be written in ENGLISH (section titles, comments, explanations — everything). If there is a programming problem, algorithm, or coding exercise, structure your response exactly in this order:
+
+        ## Solution
+        Provide the full solution code. IMPORTANT: immediately above the main function/method that solves the problem, write numbered comments (// 1 - ..., // 2 - ..., // 3 - ...), one per line, describing each step of the algorithm in ONE short, objective sentence in English. These comments are a roadmap of the reasoning (steps), letting the reader try to implement it before looking at the code below. Use the same language as the prompt (or Kotlin/Swift/Python depending on context).
+
+        Example of the comment format above the function:
+        // 1 - Declare prev and curr pointers
+        // 2 - Iterate while curr is not null
+        // 3 - Save next, reverse link, advance pointers
+        // 4 - Return prev as the new head of the list
+
+        ## Complexity
+        State time and space complexity (in English).
+
+        If there is no algorithm or coding problem, just say so briefly (in English).
+        """
 
         contentBlocks.append(["type": "text", "text": prompt])
 
