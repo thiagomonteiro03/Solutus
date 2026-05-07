@@ -22,7 +22,7 @@ struct LLMServiceTests {
 
     // MARK: - Singleton
 
-    @Test("LLMService.shared retorna a mesma instância")
+    @Test("shared returns the same instance")
     func sharedIsSingleton() {
         let a = LLMService.shared
         let b = LLMService.shared
@@ -31,42 +31,42 @@ struct LLMServiceTests {
 
     // MARK: - Input validation
 
-    @Test("solve() sem API key lança LLMError.noAPIKey")
+    @Test("solve() without API key throws LLMError.noAPIKey")
     func solveWithoutAPIKeyThrows() async throws {
         try await TestHelpers.withEnvironment(key: "OPENAI_API_KEY", value: "") {
             let image = await makeImage()
             do {
                 _ = try await LLMService.shared.solve(screenshots: [image])
-                Issue.record("solve() deveria ter lançado noAPIKey")
+                Issue.record("solve() should have thrown noAPIKey")
             } catch let error as LLMError {
                 guard case .noAPIKey = error else {
-                    Issue.record("Esperava noAPIKey, recebeu: \(error)")
+                    Issue.record("Expected noAPIKey, got: \(error)")
                     return
                 }
             } catch {
-                Issue.record("Erro inesperado (não-LLMError): \(error)")
+                Issue.record("Unexpected non-LLMError: \(error)")
             }
         }
     }
 
-    @Test("solve() com lista vazia de screenshots lança noScreenshots")
+    @Test("solve() with empty screenshot list throws noScreenshots")
     func solveWithEmptyScreenshotsThrows() async throws {
         try await TestHelpers.withEnvironment(key: "OPENAI_API_KEY", value: "sk-test-dummy") {
             do {
                 _ = try await LLMService.shared.solve(screenshots: [])
-                Issue.record("solve() deveria ter lançado noScreenshots")
+                Issue.record("solve() should have thrown noScreenshots")
             } catch let error as LLMError {
                 guard case .noScreenshots = error else {
-                    Issue.record("Esperava noScreenshots, recebeu: \(error)")
+                    Issue.record("Expected noScreenshots, got: \(error)")
                     return
                 }
             } catch {
-                Issue.record("Erro inesperado (não-LLMError): \(error)")
+                Issue.record("Unexpected non-LLMError: \(error)")
             }
         }
     }
 
-    @Test("solve() prioriza noAPIKey sobre noScreenshots")
+    @Test("solve() prioritizes noAPIKey over noScreenshots")
     func apiKeyCheckHappensBeforeScreenshotsCheck() async throws {
         // With empty key AND empty list, the API key guard is evaluated first.
         // This test is a safety net against accidental reordering of the
@@ -74,14 +74,14 @@ struct LLMServiceTests {
         try await TestHelpers.withEnvironment(key: "OPENAI_API_KEY", value: "") {
             do {
                 _ = try await LLMService.shared.solve(screenshots: [])
-                Issue.record("solve() deveria ter lançado")
+                Issue.record("solve() should have thrown")
             } catch let error as LLMError {
                 guard case .noAPIKey = error else {
-                    Issue.record("Esperava noAPIKey (guard avaliado primeiro), recebeu: \(error)")
+                    Issue.record("Expected noAPIKey (guard evaluated first), got: \(error)")
                     return
                 }
             } catch {
-                Issue.record("Erro inesperado (não-LLMError): \(error)")
+                Issue.record("Unexpected non-LLMError: \(error)")
             }
         }
     }

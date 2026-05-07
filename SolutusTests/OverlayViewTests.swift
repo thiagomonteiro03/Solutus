@@ -11,14 +11,14 @@ import Testing
 @MainActor
 struct OverlayViewTests {
 
-    @Test("View pode ser construída com todos os OverlayContent")
+    @Test("view can be constructed with all OverlayContent states")
     func instantiateWithAllStates() {
         let states: [OverlayContent] = [
             .captured(count: 1),
             .captured(count: 5),
             .loading,
-            .solution("solução de exemplo"),
-            .error("erro de exemplo")
+            .solution("sample solution"),
+            .error("sample error")
         ]
         for state in states {
             let view = OverlayView(content: state, onDismiss: {})
@@ -27,12 +27,11 @@ struct OverlayViewTests {
         }
     }
 
-    @Test("frameHeight é menor para .captured e .loading, maior para solução/erro")
+    @Test("frameHeight is smaller for .captured/.loading, larger for solution/error")
     func frameHeightAdaptsToContent() {
-        // Indirectly checks via the mirror that "small" states result in a
-        // different height than "large" ones. This property matters for UX —
-        // the overlay must not take over the whole screen while it's only
-        // accumulating screenshots.
+        // Indirectly checks that "small" states result in a different height
+        // than "large" ones. This property matters for UX — the overlay must
+        // not take over the whole screen while only accumulating screenshots.
         let small = OverlayView(content: .loading, onDismiss: {})
         let big = OverlayView(content: .solution("x"), onDismiss: {})
 
@@ -42,9 +41,9 @@ struct OverlayViewTests {
         _ = big.body
     }
 
-    @Test("solution preserva quebras de linha e markdown")
+    @Test("solution preserves newlines and markdown")
     func solutionPreservesNewlinesAndMarkdown() {
-        let text = "Linha 1\nLinha 2\n```swift\nfunc x() {}\n```"
+        let text = "Line 1\nLine 2\n```swift\nfunc x() {}\n```"
         let view = OverlayView(content: .solution(text), onDismiss: {})
         _ = view.body
         // Only confirms that building with raw markdown doesn't throw.

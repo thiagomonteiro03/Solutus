@@ -11,7 +11,7 @@ import Testing
 @Suite("ScreenCapture")
 struct ScreenCaptureTests {
 
-    @Test("capture() retorna Optional<NSImage> sem lançar")
+    @Test("capture() returns Optional<NSImage> without throwing")
     func captureReturnsOptionalWithoutThrowing() async {
         // The signature is `async -> NSImage?` (no throws), so any internal
         // failure is converted to nil. This test ensures that contract is
@@ -22,7 +22,7 @@ struct ScreenCaptureTests {
         _ = result
     }
 
-    @Test("capture() múltiplas chamadas em paralelo são seguras")
+    @Test("capture() is safe when called in parallel")
     func captureIsSafeInParallel() async {
         async let a = ScreenCapture.capture()
         async let b = ScreenCapture.capture()

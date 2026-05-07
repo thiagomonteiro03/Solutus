@@ -8,7 +8,7 @@ import Testing
 @MainActor
 struct OverlayWindowControllerTests {
 
-    @Test("show cria a janela e a torna visível")
+    @Test("show creates the window and makes it visible")
     func showCreatesWindow() {
         let controller = OverlayWindowController()
         controller.show(content: .loading)
@@ -22,14 +22,14 @@ struct OverlayWindowControllerTests {
         controller.hide()
     }
 
-    @Test("show duas vezes reusa a mesma janela")
+    @Test("calling show twice reuses the same window")
     func showReusesWindow() {
         let controller = OverlayWindowController()
         controller.show(content: .loading)
         let mirror1 = Mirror(reflecting: controller)
         let window1 = mirror1.children.first { $0.label == "window" }?.value as? NSWindow
 
-        controller.show(content: .solution("outra coisa"))
+        controller.show(content: .solution("another content"))
         let mirror2 = Mirror(reflecting: controller)
         let window2 = mirror2.children.first { $0.label == "window" }?.value as? NSWindow
 
@@ -37,7 +37,7 @@ struct OverlayWindowControllerTests {
         controller.hide()
     }
 
-    @Test("janela é configurada como invisível para screen recording")
+    @Test("window is invisible to screen recording")
     func windowIsScreenRecordingInvisible() {
         let controller = OverlayWindowController()
         controller.show(content: .loading)
@@ -48,7 +48,7 @@ struct OverlayWindowControllerTests {
         // Core product property: the window MUST NOT appear in screen sharing
         // or recording. If anyone removes that line, this test breaks
         // immediately.
-        #expect(window?.sharingType == NSWindowSharingType(rawValue: 0))
+        #expect(window?.sharingType == .none)
         #expect(window?.level == .floating)
         #expect(window?.isOpaque == false)
         #expect(window?.hasShadow == false)
@@ -56,13 +56,13 @@ struct OverlayWindowControllerTests {
         controller.hide()
     }
 
-    @Test("hide não crasha quando a janela nunca foi mostrada")
+    @Test("hide is safe when window was never shown")
     func hideWithoutShowIsSafe() {
         let controller = OverlayWindowController()
         controller.hide() // must not throw nor crash
     }
 
-    @Test("show aceita todos os tipos de conteúdo sequencialmente")
+    @Test("show accepts all content types sequentially")
     func showAcceptsAllContentTypes() {
         let controller = OverlayWindowController()
         let states: [OverlayContent] = [

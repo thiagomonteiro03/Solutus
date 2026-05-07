@@ -15,19 +15,19 @@ import Testing
 @MainActor
 struct HotKeyManagerTests {
 
-    @Test("init não crasha e cria instância válida")
+    @Test("init does not crash and creates a valid instance")
     func initDoesNotCrash() {
         let manager = HotKeyManager(onCapture: {}, onSend: {})
         #expect(type(of: manager) == HotKeyManager.self)
     }
 
-    @Test("stop antes de start é seguro")
+    @Test("stop before start is safe")
     func stopBeforeStartIsSafe() {
         let manager = HotKeyManager(onCapture: {}, onSend: {})
         manager.stop() // must not crash
     }
 
-    @Test("start pode ser chamado sem permissão sem crashar")
+    @Test("start without Accessibility permission does not crash")
     func startWithoutAccessibilityDoesNotCrash() {
         // In a test environment (xctest) there's typically NO Accessibility
         // permission. The implementation handles that case with an early
@@ -37,14 +37,14 @@ struct HotKeyManagerTests {
         manager.stop()
     }
 
-    @Test("instâncias diferentes são objetos distintos")
+    @Test("different instances are distinct objects")
     func instancesAreDistinct() {
         let a = HotKeyManager(onCapture: {}, onSend: {})
         let b = HotKeyManager(onCapture: {}, onSend: {})
         #expect(a !== b)
     }
 
-    @Test("múltiplos ciclos start/stop não vazam nem crasham")
+    @Test("multiple start/stop cycles do not leak or crash")
     func multipleStartStopCycles() {
         let manager = HotKeyManager(onCapture: {}, onSend: {})
         for _ in 0..<3 {

@@ -6,48 +6,48 @@ import Testing
 @Suite("OverlayContent")
 struct OverlayContentTests {
 
-    @Test("captured preserva count")
+    @Test("captured preserves count")
     func capturedCarriesCount() {
         let content = OverlayContent.captured(count: 3)
         guard case .captured(let count) = content else {
-            Issue.record("esperava .captured")
+            Issue.record("expected .captured")
             return
         }
         #expect(count == 3)
     }
 
-    @Test("solution preserva o texto cru (markdown-aware)")
+    @Test("solution preserves raw text (markdown-aware)")
     func solutionCarriesText() {
-        let payload = "Use um hash map.\n```swift\nfunc x() {}\n```"
+        let payload = "Use a hash map.\n```swift\nfunc x() {}\n```"
         let content = OverlayContent.solution(payload)
         guard case .solution(let text) = content else {
-            Issue.record("esperava .solution")
+            Issue.record("expected .solution")
             return
         }
         #expect(text == payload)
     }
 
-    @Test("error preserva a mensagem")
+    @Test("error preserves the message")
     func errorCarriesMessage() {
-        let content = OverlayContent.error("algo deu errado")
+        let content = OverlayContent.error("something went wrong")
         guard case .error(let message) = content else {
-            Issue.record("esperava .error")
+            Issue.record("expected .error")
             return
         }
-        #expect(message == "algo deu errado")
+        #expect(message == "something went wrong")
     }
 
-    @Test("loading não tem payload")
+    @Test("loading has no payload")
     func loadingHasNoPayload() {
         let content = OverlayContent.loading
         if case .loading = content {
             // ok
         } else {
-            Issue.record("esperava .loading")
+            Issue.record("expected .loading")
         }
     }
 
-    @Test("cases distintos são distinguíveis por pattern-matching")
+    @Test("all cases are distinguishable via pattern-matching")
     func casesAreDistinguishable() {
         let items: [OverlayContent] = [
             .captured(count: 1),

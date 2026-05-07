@@ -11,19 +11,19 @@ import Testing
 @MainActor
 struct AppDelegateTests {
 
-    @Test("AppDelegate pode ser instanciado")
+    @Test("AppDelegate can be instantiated")
     func canBeInstantiated() {
         let delegate = AppDelegate()
         #expect((delegate as NSObject).conforms(to: NSApplicationDelegate.self))
     }
 
-    @Test("dismiss é seguro antes de qualquer captura")
+    @Test("dismiss is safe before any capture")
     func dismissBeforeAnyCapture() {
         let delegate = AppDelegate()
         delegate.dismiss() // must not crash
     }
 
-    @Test("dismiss zera a fila de screenshots")
+    @Test("dismiss clears the screenshot queue")
     func dismissClearsQueue() {
         let delegate = AppDelegate()
 

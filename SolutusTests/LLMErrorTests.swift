@@ -7,19 +7,19 @@ import Testing
 @Suite("LLMError")
 struct LLMErrorTests {
 
-    @Test("imageConversionFailed usa mensagem em português")
+    @Test("imageConversionFailed returns Portuguese user-facing message")
     func imageConversionFailed() {
         let error = LLMError.imageConversionFailed
         #expect(error.errorDescription == "Falha ao converter o screenshot.")
     }
 
-    @Test("invalidResponse usa mensagem em português")
+    @Test("invalidResponse returns Portuguese user-facing message")
     func invalidResponse() {
         let error = LLMError.invalidResponse
         #expect(error.errorDescription == "Resposta inválida do servidor.")
     }
 
-    @Test("noAPIKey orienta o usuário a configurar o scheme")
+    @Test("noAPIKey guides user to configure the scheme")
     func noAPIKey() {
         let error = LLMError.noAPIKey
         let description = error.errorDescription ?? ""
@@ -27,13 +27,13 @@ struct LLMErrorTests {
         #expect(description.contains("OPENAI_API_KEY"))
     }
 
-    @Test("noScreenshots usa mensagem em português")
+    @Test("noScreenshots returns Portuguese user-facing message")
     func noScreenshots() {
         let error = LLMError.noScreenshots
         #expect(error.errorDescription == "Nenhum screenshot para enviar.")
     }
 
-    @Test("apiError inclui status code e corpo truncado")
+    @Test("apiError includes status code and body text")
     func apiErrorIncludesStatusAndBody() {
         let error = LLMError.apiError(statusCode: 429, body: "rate limited")
         let description = error.errorDescription ?? ""
@@ -41,7 +41,7 @@ struct LLMErrorTests {
         #expect(description.contains("rate limited"))
     }
 
-    @Test("apiError trunca corpos muito grandes em 200 caracteres")
+    @Test("apiError truncates long bodies to 200 characters")
     func apiErrorTruncatesLongBody() {
         let longBody = String(repeating: "x", count: 1_000)
         let error = LLMError.apiError(statusCode: 500, body: longBody)
@@ -52,7 +52,7 @@ struct LLMErrorTests {
         #expect(bodySegment.count <= 200)
     }
 
-    @Test("LocalizedError conforma com o protocolo padrão do Swift")
+    @Test("conforms to LocalizedError protocol")
     func conformsToLocalizedError() {
         let error: any Error = LLMError.noAPIKey
         #expect((error as? LLMError)?.errorDescription != nil)
