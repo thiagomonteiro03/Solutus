@@ -6,8 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		AA50010A2F89C1A5005F6DBA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA140FC62F89C1A5005F6DBA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA140FCD2F89C1A5005F6DBA;
+			remoteInfo = Solutus;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		AA140FCE2F89C1A5005F6DBA /* Solutus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Solutus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA5001002F89C1A5005F6DBA /* SolutusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SolutusTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +27,22 @@
 			path = Solutus;
 			sourceTree = "<group>";
 		};
+		AA5001022F89C1A5005F6DBA /* SolutusTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SolutusTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		AA140FCB2F89C1A5005F6DBA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA5001032F89C1A5005F6DBA /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				AA140FD02F89C1A5005F6DBA /* Solutus */,
+				AA5001022F89C1A5005F6DBA /* SolutusTests */,
 				AA140FCF2F89C1A5005F6DBA /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +65,7 @@
 			isa = PBXGroup;
 			children = (
 				AA140FCE2F89C1A5005F6DBA /* Solutus.app */,
+				AA5001002F89C1A5005F6DBA /* SolutusTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +95,29 @@
 			productReference = AA140FCE2F89C1A5005F6DBA /* Solutus.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AA5001012F89C1A5005F6DBA /* SolutusTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA5001062F89C1A5005F6DBA /* Build configuration list for PBXNativeTarget "SolutusTests" */;
+			buildPhases = (
+				AA5001042F89C1A5005F6DBA /* Sources */,
+				AA5001032F89C1A5005F6DBA /* Frameworks */,
+				AA5001052F89C1A5005F6DBA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA50010B2F89C1A5005F6DBA /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AA5001022F89C1A5005F6DBA /* SolutusTests */,
+			);
+			name = SolutusTests;
+			packageProductDependencies = (
+			);
+			productName = SolutusTests;
+			productReference = AA5001002F89C1A5005F6DBA /* SolutusTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -82,6 +130,10 @@
 				TargetAttributes = {
 					AA140FCD2F89C1A5005F6DBA = {
 						CreatedOnToolsVersion = 26.0;
+					};
+					AA5001012F89C1A5005F6DBA = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = AA140FCD2F89C1A5005F6DBA;
 					};
 				};
 			};
@@ -100,12 +152,20 @@
 			projectRoot = "";
 			targets = (
 				AA140FCD2F89C1A5005F6DBA /* Solutus */,
+				AA5001012F89C1A5005F6DBA /* SolutusTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		AA140FCC2F89C1A5005F6DBA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA5001052F89C1A5005F6DBA /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +182,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA5001042F89C1A5005F6DBA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AA50010B2F89C1A5005F6DBA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA140FCD2F89C1A5005F6DBA /* Solutus */;
+			targetProxy = AA50010A2F89C1A5005F6DBA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		AA140FD72F89C1A7005F6DBA /* Debug */ = {
@@ -318,6 +393,44 @@
 			};
 			name = Release;
 		};
+		AA5001072F89C1A5005F6DBA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.montway.SolutusTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Solutus.app/Contents/MacOS/Solutus";
+			};
+			name = Debug;
+		};
+		AA5001082F89C1A5005F6DBA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.montway.SolutusTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Solutus.app/Contents/MacOS/Solutus";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -335,6 +448,15 @@
 			buildConfigurations = (
 				AA140FDA2F89C1A7005F6DBA /* Debug */,
 				AA140FDB2F89C1A7005F6DBA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA5001062F89C1A5005F6DBA /* Build configuration list for PBXNativeTarget "SolutusTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA5001072F89C1A5005F6DBA /* Debug */,
+				AA5001082F89C1A5005F6DBA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
