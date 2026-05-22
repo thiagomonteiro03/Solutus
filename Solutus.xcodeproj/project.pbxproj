@@ -340,6 +340,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Solutus precisa do microfone para ouvir e resumir as entrevistas de RH.";
 				INFOPLIST_KEY_NSScreenCaptureUsageDescription = "Solutus precisa capturar a tela para detectar e resolver algoritmos.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -376,6 +377,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Solutus precisa do microfone para ouvir e resumir as entrevistas de RH.";
 				INFOPLIST_KEY_NSScreenCaptureUsageDescription = "Solutus precisa capturar a tela para detectar e resolver algoritmos.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

@@ -67,32 +67,46 @@ struct OverlayContentTests {
         }
     }
 
+    @Test("recording has no payload")
+    func recordingHasNoPayload() {
+        let content = OverlayContent.recording
+        if case .recording = content {
+            // ok
+        } else {
+            Issue.record("expected .recording")
+        }
+    }
+
     @Test("all cases are distinguishable via pattern-matching")
     func casesAreDistinguishable() {
         let items: [OverlayContent] = [
             .captured(count: 1),
             .loading,
+            .recording,
             .solution(text: "x", source: .algorithmHelper),
             .error("y")
         ]
         var capturedHits = 0
         var loadingHits = 0
+        var recordingHits = 0
         var solutionHits = 0
         var errorHits = 0
 
         for item in items {
             switch item {
-            case .captured:  capturedHits += 1
-            case .loading:   loadingHits  += 1
-            case .solution:  solutionHits += 1
-            case .error:     errorHits    += 1
+            case .captured:  capturedHits  += 1
+            case .loading:   loadingHits   += 1
+            case .recording: recordingHits += 1
+            case .solution:  solutionHits  += 1
+            case .error:     errorHits     += 1
             }
         }
 
-        #expect(capturedHits == 1)
-        #expect(loadingHits  == 1)
-        #expect(solutionHits == 1)
-        #expect(errorHits    == 1)
+        #expect(capturedHits  == 1)
+        #expect(loadingHits   == 1)
+        #expect(recordingHits == 1)
+        #expect(solutionHits  == 1)
+        #expect(errorHits     == 1)
     }
 }
 

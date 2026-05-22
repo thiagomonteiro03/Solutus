@@ -13,12 +13,12 @@ enum FeatureRegistry {
     static func defaultFeatures(
         showAlgorithmHelperHint: @escaping () -> Void,
         showAndroidHelperHint:   @escaping () -> Void,
-        showHRMeetingHelperHint: @escaping () -> Void
+        toggleHRMeetingRecording: @escaping () -> Void
     ) -> [Feature] {
         [
             algorithmHelper(action: showAlgorithmHelperHint),
             androidHelper(action: showAndroidHelperHint),
-            hrMeetingHelper(action: showHRMeetingHelperHint)
+            hrMeetingHelper(action: toggleHRMeetingRecording)
         ]
     }
 

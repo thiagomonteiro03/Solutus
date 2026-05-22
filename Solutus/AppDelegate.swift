@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -11,6 +12,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Independent queues per feature — captures from one never bleed into the other.
     private var algorithmScreenshots: [NSImage] = []
     private var androidScreenshots:   [NSImage] = []
+
+    // HR Meeting Helper: microphone capture. System audio + transcription land
+    // in later cards.
+    private let microphoneCapture = MicrophoneCapture()
 
     /// The last feature the user captured into. `sendToAI()` dispatches this
     /// queue by default. The `.algorithmHelper` default is only a seed; it
@@ -44,9 +49,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// each button triggers.
     private func setupHub() {
         let features = FeatureRegistry.defaultFeatures(
-            showAlgorithmHelperHint: { [weak self] in self?.showAlgorithmHelperHint() },
-            showAndroidHelperHint:   { [weak self] in self?.showAndroidHelperHint() },
-            showHRMeetingHelperHint: { [weak self] in self?.showHRMeetingHelperHint() }
+            showAlgorithmHelperHint:  { [weak self] in self?.showAlgorithmHelperHint() },
+            showAndroidHelperHint:    { [weak self] in self?.showAndroidHelperHint() },
+            toggleHRMeetingRecording: { [weak self] in self?.toggleHRMeetingRecording() }
         )
         hubWindowController = HubWindowController(features: features)
     }
@@ -113,24 +118,43 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
-    /// Action triggered by the "HR Meeting Helper" card in the hub. This is the
-    /// scaffolding step: the feature is registered and discoverable, but audio
-    /// capture, transcription and the Trello export land in later cards. For now
-    /// the alert states what the feature will do and that it isn't wired yet.
-    private func showHRMeetingHelperHint() {
-        presentHintAlert(
-            title: "HR Meeting Helper",
-            body: """
-            Em construção.
+    // MARK: - HR Meeting Helper
 
-            Esta feature vai ouvir a call de entrevista de RH (sua voz + a voz \
-            da recrutadora), transcrever em tempo real e, ao final, gerar um \
-            resumo com os pontos da vaga e enviar um card para o Trello.
+    /// Action triggered by the "HR Meeting Helper" card in the hub. Toggles
+    /// microphone capture: starts it (after requesting permission) when idle,
+    /// stops it when already recording. System audio capture and transcription
+    /// land in later cards.
+    private func toggleHRMeetingRecording() {
+        if microphoneCapture.isRecording {
+            microphoneCapture.stop()
+            overlayWindowController?.hide()
+            print("HR Meeting recording stopped. Received \(microphoneCapture.bufferCount) audio buffers.")
+            return
+        }
 
-            Por enquanto só o botão existe — a captura de áudio chega no \
-            próximo passo.
-            """
-        )
+        Task {
+            guard await requestMicrophoneAccess() else {
+                overlayWindowController?.show(content: .error("Sem acesso ao microfone.\nLibere em Preferências do Sistema → Privacidade → Microfone."))
+                return
+            }
+            do {
+                try microphoneCapture.start()
+                overlayWindowController?.show(content: .recording)
+                print("HR Meeting recording started.")
+            } catch {
+                overlayWindowController?.show(content: .error("Não foi possível iniciar a captura de áudio."))
+            }
+        }
+    }
+
+    /// Resolves microphone access, prompting the user only when the status is
+    /// still undetermined. Returns whether capture may proceed.
+    private func requestMicrophoneAccess() async -> Bool {
+        switch MicrophoneCapture.access(for: AVCaptureDevice.authorizationStatus(for: .audio)) {
+        case .authorized:   return true
+        case .denied:       return false
+        case .undetermined: return await AVCaptureDevice.requestAccess(for: .audio)
+        }
     }
 
     /// Shared helper across the hint alerts so the `DispatchQueue.main.async`

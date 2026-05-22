@@ -104,7 +104,7 @@ struct FeatureRegistryTests {
         let features = FeatureRegistry.defaultFeatures(
             showAlgorithmHelperHint: { spy.record() },
             showAndroidHelperHint: {},
-            showHRMeetingHelperHint: {}
+            toggleHRMeetingRecording: {}
         )
 
         #expect(spy.callCount == 0)
@@ -120,7 +120,7 @@ struct FeatureRegistryTests {
         let features = FeatureRegistry.defaultFeatures(
             showAlgorithmHelperHint: {},
             showAndroidHelperHint: { spy.record() },
-            showHRMeetingHelperHint: {}
+            toggleHRMeetingRecording: {}
         )
 
         // Building the registry MUST NOT fire the closure — otherwise the
@@ -138,7 +138,7 @@ struct FeatureRegistryTests {
         let features = FeatureRegistry.defaultFeatures(
             showAlgorithmHelperHint: {},
             showAndroidHelperHint: {},
-            showHRMeetingHelperHint: { spy.record() }
+            toggleHRMeetingRecording: { spy.record() }
         )
 
         // Building the registry MUST NOT fire the closure — otherwise the
@@ -157,7 +157,7 @@ struct FeatureRegistryTests {
         FeatureRegistry.defaultFeatures(
             showAlgorithmHelperHint: {},
             showAndroidHelperHint: {},
-            showHRMeetingHelperHint: {}
+            toggleHRMeetingRecording: {}
         )
     }
 }
