@@ -29,7 +29,7 @@ struct OverlayWindowControllerTests {
         let mirror1 = Mirror(reflecting: controller)
         let window1 = mirror1.children.first { $0.label == "window" }?.value as? NSWindow
 
-        controller.show(content: .solution("another content"))
+        controller.show(content: .solution(text: "another content", source: .algorithmHelper))
         let mirror2 = Mirror(reflecting: controller)
         let window2 = mirror2.children.first { $0.label == "window" }?.value as? NSWindow
 
@@ -69,7 +69,8 @@ struct OverlayWindowControllerTests {
             .captured(count: 1),
             .captured(count: 3),
             .loading,
-            .solution("x = 42"),
+            .solution(text: "x = 42", source: .algorithmHelper),
+            .solution(text: "lifecycle answer", source: .androidHelper),
             .error("boom")
         ]
         for state in states {

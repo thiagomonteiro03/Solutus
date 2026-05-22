@@ -17,7 +17,8 @@ struct OverlayViewTests {
             .captured(count: 1),
             .captured(count: 5),
             .loading,
-            .solution("sample solution"),
+            .solution(text: "sample solution", source: .algorithmHelper),
+            .solution(text: "sample solution", source: .androidHelper),
             .error("sample error")
         ]
         for state in states {
@@ -33,7 +34,10 @@ struct OverlayViewTests {
         // than "large" ones. This property matters for UX — the overlay must
         // not take over the whole screen while only accumulating screenshots.
         let small = OverlayView(content: .loading, onDismiss: {})
-        let big = OverlayView(content: .solution("x"), onDismiss: {})
+        let big = OverlayView(
+            content: .solution(text: "x", source: .algorithmHelper),
+            onDismiss: {}
+        )
 
         // Ensures the view can be constructed in both states without crashing
         // and that the ZStack/VStack inside `body` compiles.
@@ -44,7 +48,10 @@ struct OverlayViewTests {
     @Test("solution preserves newlines and markdown")
     func solutionPreservesNewlinesAndMarkdown() {
         let text = "Line 1\nLine 2\n```swift\nfunc x() {}\n```"
-        let view = OverlayView(content: .solution(text), onDismiss: {})
+        let view = OverlayView(
+            content: .solution(text: text, source: .androidHelper),
+            onDismiss: {}
+        )
         _ = view.body
         // Only confirms that building with raw markdown doesn't throw.
     }

@@ -102,7 +102,17 @@ xcodebuild test -scheme Solutus -destination 'platform=macOS'
 
 ## Language and style conventions
 
-- Comments and error messages are in **Portuguese** (Brazilian)
+- **Code is in English. Strings shown to the user are in Portuguese (Brazilian).**
+  Concretely:
+  - Comments (single-line, block, doc comments, `// MARK:` headers) → English.
+  - Type/property/method/local names → English (already the convention).
+  - `print()` and other developer-console output → English (not user-facing).
+  - User-facing strings stay in PT-BR. This includes:
+    - `LLMError.errorDescription` — rendered in the overlay's `.error` state.
+    - Alert bodies/titles shown via `NSAlert`.
+    - SwiftUI `Text(...)` content rendered to the user (overlay copy, hub copy, feature subtitles, `FeatureCategory.displayName`, etc.).
+    - Default fallbacks that surface to the user (e.g., `"Sem resposta da API."`).
+  - The prompt sent to GPT and the response Claude returns continue to be in English (product requirement).
 - Use `@MainActor` for any UI-touching code
 - `LLMService` is `Sendable` / `nonisolated` — keep network methods `nonisolated`
 - `OverlayContent` is the single source of truth for UI state — don't pass raw strings to the view layer

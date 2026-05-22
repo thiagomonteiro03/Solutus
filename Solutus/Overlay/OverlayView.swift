@@ -5,7 +5,10 @@ import SwiftUI
 enum OverlayContent {
     case captured(count: Int)
     case loading
-    case solution(String)
+    /// `source` identifies which feature responded — rendered as a header at
+    /// the top of the response body so the user can disambiguate parallel
+    /// flows (Algorithm Helper × Android Helper).
+    case solution(text: String, source: HelperKind)
     case error(String)
 }
 
@@ -60,7 +63,7 @@ struct OverlayView: View {
         .animation(.easeInOut(duration: 0.2), value: frameHeight)
     }
 
-    // Altura menor no estado de captura, maior para solução
+    // Smaller height in capture/loading states, larger for solution/error.
     private var frameHeight: CGFloat {
         switch content {
         case .captured: return 110
@@ -93,11 +96,18 @@ struct OverlayView: View {
                     .font(.system(size: 13))
             }
 
-        case .solution(let text):
-            Text(text)
-                .font(.system(size: 13))
-                .lineSpacing(4)
-                .textSelection(.enabled)
+        case .solution(let text, let source):
+            VStack(alignment: .leading, spacing: 8) {
+                Text(source.displayName)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                Divider().opacity(0.4)
+                Text(text)
+                    .font(.system(size: 13))
+                    .lineSpacing(4)
+                    .textSelection(.enabled)
+            }
 
         case .error(let message):
             Label {
@@ -112,12 +122,29 @@ struct OverlayView: View {
     }
 }
 
-#Preview("Capturado") {
+#Preview("Captured") {
     OverlayView(content: .captured(count: 2), onDismiss: {})
         .preferredColorScheme(.dark)
 }
 
-#Preview("Solução") {
-    OverlayView(content: .solution("Use um hash map para resolver em O(n).\n\n```swift\nfunc twoSum(_ nums: [Int], _ target: Int) -> [Int] {\n    var map = [Int: Int]()\n    for (i, n) in nums.enumerated() {\n        if let j = map[target - n] { return [j, i] }\n        map[n] = i\n    }\n    return []\n}\n```"), onDismiss: {})
-        .preferredColorScheme(.dark)
+#Preview("Solution (Algorithm)") {
+    OverlayView(
+        content: .solution(
+            text: "Use a hash map to solve in O(n).\n\n```swift\nfunc twoSum(_ nums: [Int], _ target: Int) -> [Int] {\n    var map = [Int: Int]()\n    for (i, n) in nums.enumerated() {\n        if let j = map[target - n] { return [j, i] }\n        map[n] = i\n    }\n    return []\n}\n```",
+            source: .algorithmHelper
+        ),
+        onDismiss: {}
+    )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Solution (Android)") {
+    OverlayView(
+        content: .solution(
+            text: "// 1 - Collect the StateFlow inside the composable\n// 2 - Hoist the state up to the ViewModel\n// 3 - Render based on the resulting UiState\n\n```kotlin\n@Composable\nfun Greeting(viewModel: GreetingViewModel) {\n    val state by viewModel.state.collectAsState()\n    Text(state.message)\n}\n```",
+            source: .androidHelper
+        ),
+        onDismiss: {}
+    )
+    .preferredColorScheme(.dark)
 }

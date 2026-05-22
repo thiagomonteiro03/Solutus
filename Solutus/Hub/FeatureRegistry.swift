@@ -11,10 +11,12 @@ import Foundation
 enum FeatureRegistry {
 
     static func defaultFeatures(
-        showAlgorithmHelperHint: @escaping () -> Void
+        showAlgorithmHelperHint: @escaping () -> Void,
+        showAndroidHelperHint:   @escaping () -> Void
     ) -> [Feature] {
         [
-            algorithmHelper(action: showAlgorithmHelperHint)
+            algorithmHelper(action: showAlgorithmHelperHint),
+            androidHelper(action: showAndroidHelperHint)
         ]
     }
 
@@ -23,6 +25,16 @@ enum FeatureRegistry {
             id: "algorithm-helper",
             title: "Algorithm Helper",
             subtitle: "Captura tela e resolve via IA",
+            category: .swiftNative,
+            action: action
+        )
+    }
+
+    private static func androidHelper(action: @escaping () -> Void) -> Feature {
+        Feature(
+            id: "android-helper",
+            title: "Android Helper",
+            subtitle: "Captura enunciado de Android/Kotlin e responde via IA",
             category: .swiftNative,
             action: action
         )

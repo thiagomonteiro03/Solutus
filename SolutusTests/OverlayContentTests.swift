@@ -19,12 +19,32 @@ struct OverlayContentTests {
     @Test("solution preserves raw text (markdown-aware)")
     func solutionCarriesText() {
         let payload = "Use a hash map.\n```swift\nfunc x() {}\n```"
-        let content = OverlayContent.solution(payload)
-        guard case .solution(let text) = content else {
+        let content = OverlayContent.solution(text: payload, source: .algorithmHelper)
+        guard case .solution(let text, _) = content else {
             Issue.record("expected .solution")
             return
         }
         #expect(text == payload)
+    }
+
+    @Test("solution preserves the helper source (Android Helper)")
+    func solutionCarriesAndroidSource() {
+        let content = OverlayContent.solution(text: "irrelevant", source: .androidHelper)
+        guard case .solution(_, let source) = content else {
+            Issue.record("expected .solution")
+            return
+        }
+        #expect(source == .androidHelper)
+    }
+
+    @Test("solution preserves the helper source (Algorithm Helper)")
+    func solutionCarriesAlgorithmSource() {
+        let content = OverlayContent.solution(text: "irrelevant", source: .algorithmHelper)
+        guard case .solution(_, let source) = content else {
+            Issue.record("expected .solution")
+            return
+        }
+        #expect(source == .algorithmHelper)
     }
 
     @Test("error preserves the message")
@@ -52,7 +72,7 @@ struct OverlayContentTests {
         let items: [OverlayContent] = [
             .captured(count: 1),
             .loading,
-            .solution("x"),
+            .solution(text: "x", source: .algorithmHelper),
             .error("y")
         ]
         var capturedHits = 0
@@ -73,5 +93,24 @@ struct OverlayContentTests {
         #expect(loadingHits  == 1)
         #expect(solutionHits == 1)
         #expect(errorHits    == 1)
+    }
+}
+
+/// Covers the `HelperKind` enum used as `source` in `.solution` and as the
+/// dispatch key in `AppDelegate` / `LLMService`.
+@Suite("HelperKind")
+struct HelperKindTests {
+
+    @Test("displayName matches the user-facing labels expected by the overlay")
+    func displayNameIsExact() {
+        #expect(HelperKind.algorithmHelper.displayName == "Algorithm Helper")
+        #expect(HelperKind.androidHelper.displayName   == "Android Helper")
+    }
+
+    @Test("equatable allows pattern matching across queues and overlay state")
+    func equatable() {
+        #expect(HelperKind.algorithmHelper == .algorithmHelper)
+        #expect(HelperKind.androidHelper   == .androidHelper)
+        #expect(HelperKind.algorithmHelper != .androidHelper)
     }
 }
