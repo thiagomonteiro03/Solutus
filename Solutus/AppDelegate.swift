@@ -45,7 +45,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupHub() {
         let features = FeatureRegistry.defaultFeatures(
             showAlgorithmHelperHint: { [weak self] in self?.showAlgorithmHelperHint() },
-            showAndroidHelperHint:   { [weak self] in self?.showAndroidHelperHint() }
+            showAndroidHelperHint:   { [weak self] in self?.showAndroidHelperHint() },
+            showHRMeetingHelperHint: { [weak self] in self?.showHRMeetingHelperHint() }
         )
         hubWindowController = HubWindowController(features: features)
     }
@@ -108,6 +109,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             A resposta vem em inglês e aparece no overlay flutuante \
             (invisível em screen sharing).
+            """
+        )
+    }
+
+    /// Action triggered by the "HR Meeting Helper" card in the hub. This is the
+    /// scaffolding step: the feature is registered and discoverable, but audio
+    /// capture, transcription and the Trello export land in later cards. For now
+    /// the alert states what the feature will do and that it isn't wired yet.
+    private func showHRMeetingHelperHint() {
+        presentHintAlert(
+            title: "HR Meeting Helper",
+            body: """
+            Em construção.
+
+            Esta feature vai ouvir a call de entrevista de RH (sua voz + a voz \
+            da recrutadora), transcrever em tempo real e, ao final, gerar um \
+            resumo com os pontos da vaga e enviar um card para o Trello.
+
+            Por enquanto só o botão existe — a captura de áudio chega no \
+            próximo passo.
             """
         )
     }

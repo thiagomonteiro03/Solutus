@@ -55,6 +55,29 @@ struct FeatureRegistryTests {
         #expect(helper?.subtitle.isEmpty == false)
     }
 
+    // MARK: - HR Meeting Helper
+
+    @Test("defaultFeatures includes HR Meeting Helper")
+    func defaultFeaturesIncludesHRMeetingHelper() {
+        let features = makeFeatures()
+        #expect(features.contains { $0.id == "hr-meeting-helper" })
+    }
+
+    @Test("HR Meeting Helper is in the swiftNative category")
+    func hrMeetingHelperIsSwiftNative() {
+        let features = makeFeatures()
+        let helper = features.first { $0.id == "hr-meeting-helper" }
+        #expect(helper?.category == .swiftNative)
+    }
+
+    @Test("HR Meeting Helper has populated title and subtitle")
+    func hrMeetingHelperHasContent() {
+        let features = makeFeatures()
+        let helper = features.first { $0.id == "hr-meeting-helper" }
+        #expect(helper?.title.isEmpty == false)
+        #expect(helper?.subtitle.isEmpty == false)
+    }
+
     // MARK: - Registry invariants
 
     @Test("feature ids are unique (stable key for ForEach in HubView)")
@@ -64,12 +87,12 @@ struct FeatureRegistryTests {
         #expect(Set(ids).count == ids.count)
     }
 
-    @Test("registry exposes both helpers (Algorithm + Android)")
-    func registryExposesBothHelpers() {
+    @Test("registry exposes all helpers (Algorithm + Android + HR Meeting)")
+    func registryExposesAllHelpers() {
         let features = makeFeatures()
-        // Ensures adding the Android feature did not remove or alter the
-        // Algorithm one — the Hub expects both.
-        #expect(features.count == 2)
+        // Ensures adding a new feature did not remove or alter the existing
+        // ones — the Hub expects all of them.
+        #expect(features.count == 3)
     }
 
     // MARK: - Lazy closures
@@ -80,7 +103,8 @@ struct FeatureRegistryTests {
 
         let features = FeatureRegistry.defaultFeatures(
             showAlgorithmHelperHint: { spy.record() },
-            showAndroidHelperHint: {}
+            showAndroidHelperHint: {},
+            showHRMeetingHelperHint: {}
         )
 
         #expect(spy.callCount == 0)
@@ -95,7 +119,8 @@ struct FeatureRegistryTests {
 
         let features = FeatureRegistry.defaultFeatures(
             showAlgorithmHelperHint: {},
-            showAndroidHelperHint: { spy.record() }
+            showAndroidHelperHint: { spy.record() },
+            showHRMeetingHelperHint: {}
         )
 
         // Building the registry MUST NOT fire the closure — otherwise the
@@ -106,6 +131,24 @@ struct FeatureRegistryTests {
         #expect(spy.callCount == 1)
     }
 
+    @Test("HR Meeting Helper closure is lazy — only fires when action is invoked")
+    func hrMeetingClosureIsLazy() {
+        let spy = HintInvocationSpy()
+
+        let features = FeatureRegistry.defaultFeatures(
+            showAlgorithmHelperHint: {},
+            showAndroidHelperHint: {},
+            showHRMeetingHelperHint: { spy.record() }
+        )
+
+        // Building the registry MUST NOT fire the closure — otherwise the
+        // alert would appear at app launch.
+        #expect(spy.callCount == 0)
+
+        features.first { $0.id == "hr-meeting-helper" }?.action()
+        #expect(spy.callCount == 1)
+    }
+
     // MARK: - Helpers
 
     /// Builds the registry with empty closures — used by tests that only
@@ -113,7 +156,8 @@ struct FeatureRegistryTests {
     private func makeFeatures() -> [Feature] {
         FeatureRegistry.defaultFeatures(
             showAlgorithmHelperHint: {},
-            showAndroidHelperHint: {}
+            showAndroidHelperHint: {},
+            showHRMeetingHelperHint: {}
         )
     }
 }
