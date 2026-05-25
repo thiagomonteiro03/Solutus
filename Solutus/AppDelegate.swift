@@ -1,5 +1,6 @@
 import AppKit
 import AVFoundation
+import Speech
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -13,9 +14,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var algorithmScreenshots: [NSImage] = []
     private var androidScreenshots:   [NSImage] = []
 
-    // HR Meeting Helper: microphone + system audio capture. Transcription lands
-    // in a later card.
-    private let meetingAudio = MeetingAudioSession()
+    // HR Meeting Helper: microphone + system audio capture, plus live
+    // transcription per speaker. The concrete capture refs are kept here
+    // because MeetingTranscriber needs them to wire each source's buffer
+    // callback to its own SFSpeechRecognizer.
+    private let microphone = MicrophoneCapture()
+    private let systemAudio = SystemAudioCapture()
+    private lazy var meetingAudio = MeetingAudioSession(microphone: microphone, systemAudio: systemAudio)
+    private lazy var meetingTranscriber = MeetingTranscriber(microphone: microphone, systemAudio: systemAudio)
 
     /// The last feature the user captured into. `sendToAI()` dispatches this
     /// queue by default. The `.algorithmHelper` default is only a seed; it
@@ -127,6 +133,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func toggleHRMeetingRecording() {
         if meetingAudio.isRecording {
             Task {
+                meetingTranscriber.stop()
                 await meetingAudio.stop()
                 overlayWindowController?.hide()
                 print("HR Meeting recording stopped. Received \(meetingAudio.microphoneBufferCount) mic buffers and \(meetingAudio.systemAudioBufferCount) system-audio buffers.")
@@ -139,12 +146,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 overlayWindowController?.show(content: .error("Sem acesso ao microfone.\nLibere em Preferências do Sistema → Privacidade → Microfone."))
                 return
             }
+            guard await requestSpeechAccess() else {
+                overlayWindowController?.show(content: .error("Sem acesso ao reconhecimento de fala.\nLibere em Preferências do Sistema → Privacidade → Speech Recognition."))
+                return
+            }
             do {
+                // Order matters: wire the recognizers (which set onBuffer)
+                // BEFORE starting audio so no frame is dropped at the seam.
+                try meetingTranscriber.start()
                 try await meetingAudio.start()
                 overlayWindowController?.show(content: .recording)
                 print("HR Meeting recording started.")
             } catch {
-                overlayWindowController?.show(content: .error("Não foi possível iniciar a captura de áudio.\nVerifique as permissões de Microfone e Gravação de Tela."))
+                meetingTranscriber.stop()
+                overlayWindowController?.show(content: .error("Não foi possível iniciar a captura de áudio.\nVerifique as permissões de Microfone, Gravação de Tela e Speech Recognition."))
             }
         }
     }
@@ -156,6 +171,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .authorized:   return true
         case .denied:       return false
         case .undetermined: return await AVCaptureDevice.requestAccess(for: .audio)
+        }
+    }
+
+    /// Resolves speech-recognition access, prompting the user only when the
+    /// status is still undetermined. Returns whether transcription may proceed.
+    private func requestSpeechAccess() async -> Bool {
+        let status = SFSpeechRecognizer.authorizationStatus()
+        switch Transcriber.access(for: status) {
+        case .authorized:   return true
+        case .denied:       return false
+        case .undetermined: return await Transcriber.requestAccess() == .authorized
         }
     }
 

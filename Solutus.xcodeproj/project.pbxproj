@@ -342,6 +342,7 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Solutus precisa do microfone para ouvir e resumir as entrevistas de RH.";
 				INFOPLIST_KEY_NSScreenCaptureUsageDescription = "Solutus precisa capturar a tela para detectar e resolver algoritmos.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Solutus usa reconhecimento de fala para transcrever as entrevistas de RH em tempo real.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -379,6 +380,7 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Solutus precisa do microfone para ouvir e resumir as entrevistas de RH.";
 				INFOPLIST_KEY_NSScreenCaptureUsageDescription = "Solutus precisa capturar a tela para detectar e resolver algoritmos.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Solutus usa reconhecimento de fala para transcrever as entrevistas de RH em tempo real.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
