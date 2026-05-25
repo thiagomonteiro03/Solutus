@@ -5,7 +5,7 @@ import AVFoundation
 /// Card 2 scope: prove that audio frames flow while recording is active. Each
 /// captured PCM buffer is forwarded to `onBuffer` so a later card can feed it
 /// into speech recognition; for now the only observable effect is `bufferCount`.
-nonisolated final class MicrophoneCapture {
+nonisolated final class MicrophoneCapture: AudioSource {
 
     /// The microphone authorization decision the app cares about. Pure and
     /// `Equatable` so it can be unit-tested without touching the hardware or the
@@ -43,7 +43,7 @@ nonisolated final class MicrophoneCapture {
 
     /// Starts capturing. No-op if already recording. Throws if the engine fails
     /// to start (e.g. no input device available).
-    func start() throws {
+    func start() async throws {
         guard !isRecording else { return }
 
         lock.withLock { _bufferCount = 0 }
@@ -62,7 +62,7 @@ nonisolated final class MicrophoneCapture {
     }
 
     /// Stops capturing and removes the tap. Safe to call when idle.
-    func stop() {
+    func stop() async {
         guard isRecording else { return }
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()

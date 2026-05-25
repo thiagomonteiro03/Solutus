@@ -13,9 +13,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var algorithmScreenshots: [NSImage] = []
     private var androidScreenshots:   [NSImage] = []
 
-    // HR Meeting Helper: microphone capture. System audio + transcription land
-    // in later cards.
-    private let microphoneCapture = MicrophoneCapture()
+    // HR Meeting Helper: microphone + system audio capture. Transcription lands
+    // in a later card.
+    private let meetingAudio = MeetingAudioSession()
 
     /// The last feature the user captured into. `sendToAI()` dispatches this
     /// queue by default. The `.algorithmHelper` default is only a seed; it
@@ -120,15 +120,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - HR Meeting Helper
 
-    /// Action triggered by the "HR Meeting Helper" card in the hub. Toggles
-    /// microphone capture: starts it (after requesting permission) when idle,
-    /// stops it when already recording. System audio capture and transcription
-    /// land in later cards.
+    /// Action triggered by the "HR Meeting Helper" card in the hub. Toggles the
+    /// meeting capture (microphone + system audio): starts it (after requesting
+    /// permission) when idle, stops it when already recording. Transcription
+    /// lands in a later card.
     private func toggleHRMeetingRecording() {
-        if microphoneCapture.isRecording {
-            microphoneCapture.stop()
-            overlayWindowController?.hide()
-            print("HR Meeting recording stopped. Received \(microphoneCapture.bufferCount) audio buffers.")
+        if meetingAudio.isRecording {
+            Task {
+                await meetingAudio.stop()
+                overlayWindowController?.hide()
+                print("HR Meeting recording stopped. Received \(meetingAudio.microphoneBufferCount) mic buffers and \(meetingAudio.systemAudioBufferCount) system-audio buffers.")
+            }
             return
         }
 
@@ -138,11 +140,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
             do {
-                try microphoneCapture.start()
+                try await meetingAudio.start()
                 overlayWindowController?.show(content: .recording)
                 print("HR Meeting recording started.")
             } catch {
-                overlayWindowController?.show(content: .error("Não foi possível iniciar a captura de áudio."))
+                overlayWindowController?.show(content: .error("Não foi possível iniciar a captura de áudio.\nVerifique as permissões de Microfone e Gravação de Tela."))
             }
         }
     }

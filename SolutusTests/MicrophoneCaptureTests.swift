@@ -40,9 +40,9 @@ struct MicrophoneCaptureTests {
     }
 
     @Test("stop before start is a safe no-op")
-    func stopBeforeStartIsSafe() {
+    func stopBeforeStartIsSafe() async {
         let capture = MicrophoneCapture()
-        capture.stop()
+        await capture.stop()
         #expect(capture.isRecording == false)
     }
 }
