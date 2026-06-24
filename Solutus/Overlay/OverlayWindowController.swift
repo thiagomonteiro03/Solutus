@@ -71,6 +71,14 @@ class OverlayWindowController {
         let view = OverlayView(content: content) { [weak self] in
             self?.hide()
         }
-        window.contentView = NSHostingView(rootView: view)
+        // Reuse the existing hosting view when possible: SwiftUI diffs the new
+        // root view against the previous one, preserving scroll position and
+        // avoiding a flicker on live transcript updates. The first call (or a
+        // theoretical type swap) falls through to creating a fresh one.
+        if let hostingView = window.contentView as? NSHostingView<OverlayView> {
+            hostingView.rootView = view
+        } else {
+            window.contentView = NSHostingView(rootView: view)
+        }
     }
 }

@@ -133,6 +133,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func toggleHRMeetingRecording() {
         if meetingAudio.isRecording {
             Task {
+                // Unwire the overlay update before stopping so the trailing
+                // utterances committed by `stop()` don't repaint the panel
+                // we're about to hide.
+                meetingTranscriber.onTranscriptUpdated = nil
                 meetingTranscriber.stop()
                 await meetingAudio.stop()
                 overlayWindowController?.hide()
@@ -153,9 +157,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             do {
                 // Order matters: wire the recognizers (which set onBuffer)
                 // BEFORE starting audio so no frame is dropped at the seam.
+                meetingTranscriber.onTranscriptUpdated = { [weak self] transcript in
+                    let snapshot = transcript.formatted
+                    Task { @MainActor in
+                        self?.overlayWindowController?.show(content: .recording(transcript: snapshot))
+                    }
+                }
                 try meetingTranscriber.start()
                 try await meetingAudio.start()
-                overlayWindowController?.show(content: .recording)
+                overlayWindowController?.show(content: .recording(transcript: ""))
                 print("HR Meeting recording started.")
             } catch {
                 meetingTranscriber.stop()

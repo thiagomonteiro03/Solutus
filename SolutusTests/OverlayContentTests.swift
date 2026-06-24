@@ -67,14 +67,25 @@ struct OverlayContentTests {
         }
     }
 
-    @Test("recording has no payload")
-    func recordingHasNoPayload() {
-        let content = OverlayContent.recording
-        if case .recording = content {
-            // ok
-        } else {
+    @Test("recording preserves the live transcript text")
+    func recordingCarriesTranscript() {
+        let payload = "Você: hello\nOutra parte: hi"
+        let content = OverlayContent.recording(transcript: payload)
+        guard case .recording(let transcript) = content else {
             Issue.record("expected .recording")
+            return
         }
+        #expect(transcript == payload)
+    }
+
+    @Test("recording accepts an empty transcript (awaiting first utterance)")
+    func recordingAllowsEmptyTranscript() {
+        let content = OverlayContent.recording(transcript: "")
+        guard case .recording(let transcript) = content else {
+            Issue.record("expected .recording")
+            return
+        }
+        #expect(transcript.isEmpty)
     }
 
     @Test("all cases are distinguishable via pattern-matching")
@@ -82,7 +93,7 @@ struct OverlayContentTests {
         let items: [OverlayContent] = [
             .captured(count: 1),
             .loading,
-            .recording,
+            .recording(transcript: "live"),
             .solution(text: "x", source: .algorithmHelper),
             .error("y")
         ]

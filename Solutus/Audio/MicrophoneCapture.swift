@@ -21,6 +21,13 @@ nonisolated final class MicrophoneCapture: AudioSource {
     private var _isRecording = false
     private var _bufferCount = 0
 
+    // Software gain applied before forwarding buffers. On many Mac built-in
+    // mics even a 100 % input slider lands SFSpeech around ~30 % of full scale,
+    // well below its detection sweet spot — boosting by 2.5× brings normal
+    // speech into the 60–80 % range. Clipped to ±1.0 to avoid harsh
+    // distortion on peaks.
+    private let gain: Float = 2.5
+
     /// Forwards each captured PCM buffer. Invoked on the audio render thread —
     /// consumers must not touch main-actor state synchronously from here.
     var onBuffer: ((AVAudioPCMBuffer) -> Void)?
@@ -52,6 +59,7 @@ nonisolated final class MicrophoneCapture: AudioSource {
         let format = input.outputFormat(forBus: 0)
         input.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, _ in
             guard let self else { return }
+            self.applyGain(buffer)
             self.lock.withLock { self._bufferCount += 1 }
             self.onBuffer?(buffer)
         }
@@ -59,6 +67,23 @@ nonisolated final class MicrophoneCapture: AudioSource {
         engine.prepare()
         try engine.start()
         lock.withLock { _isRecording = true }
+    }
+
+    /// Multiplies each sample by `gain` in place and hard-clamps to ±1.0 so
+    /// peaks don't fold over into the negative half (which sounds distorted to
+    /// the recognizer and the user). Cheap enough to run inside the tap.
+    private func applyGain(_ buffer: AVAudioPCMBuffer) {
+        guard gain != 1.0,
+              let channels = buffer.floatChannelData else { return }
+        let frameLength = Int(buffer.frameLength)
+        let channelCount = Int(buffer.format.channelCount)
+        for c in 0..<channelCount {
+            let channel = channels[c]
+            for i in 0..<frameLength {
+                let scaled = channel[i] * gain
+                channel[i] = min(1.0, max(-1.0, scaled))
+            }
+        }
     }
 
     /// Stops capturing and removes the tap. Safe to call when idle.

@@ -8,7 +8,7 @@ import CoreMedia
 /// Card 3 scope: prove the audio frames flow alongside the microphone. The
 /// `CMSampleBuffer`s are forwarded to `onBuffer` for the upcoming transcription
 /// card; for now the only observable effect is `bufferCount`.
-nonisolated final class SystemAudioCapture: NSObject, AudioSource {
+nonisolated final class SystemAudioCapture: NSObject, AudioSource, SCStreamOutput {
 
     enum CaptureError: Error {
         case noDisplay
@@ -58,6 +58,11 @@ nonisolated final class SystemAudioCapture: NSObject, AudioSource {
 
         let stream = SCStream(filter: filter, configuration: config, delegate: nil)
         try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: sampleQueue)
+        // SCStream always produces video frames; register a screen output we
+        // simply ignore. Without it the stream logs a "stream output NOT found.
+        // Dropping frame" error for every frame, flooding the console and
+        // contributing to audio-thread overload.
+        try? stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: sampleQueue)
         try await stream.startCapture()
 
         self.stream = stream
@@ -78,8 +83,10 @@ nonisolated final class SystemAudioCapture: NSObject, AudioSource {
     }
 }
 
-extension SystemAudioCapture: SCStreamOutput {
-    func stream(
+extension SystemAudioCapture {
+    // `nonisolated` because SCStream invokes this on `sampleQueue`, not the
+    // main actor (the project defaults to MainActor isolation).
+    nonisolated func stream(
         _ stream: SCStream,
         didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
         of type: SCStreamOutputType

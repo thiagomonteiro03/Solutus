@@ -17,7 +17,8 @@ struct OverlayViewTests {
             .captured(count: 1),
             .captured(count: 5),
             .loading,
-            .recording,
+            .recording(transcript: ""),
+            .recording(transcript: "Você: hello\nOutra parte: hi"),
             .solution(text: "sample solution", source: .algorithmHelper),
             .solution(text: "sample solution", source: .androidHelper),
             .error("sample error")

@@ -7,7 +7,7 @@ import Foundation
 /// because the two sources expose buffer callbacks with different types
 /// (`AVAudioPCMBuffer` vs `CMSampleBuffer`), which doesn't fit cleanly behind
 /// the `AudioSource` protocol.
-nonisolated final class MeetingTranscriber {
+nonisolated final class MeetingTranscriber: @unchecked Sendable {
 
     private let microphone: MicrophoneCapture
     private let systemAudio: SystemAudioCapture
@@ -19,9 +19,19 @@ nonisolated final class MeetingTranscriber {
     // before the delayed dispatch fires.
     private var isStopRequested = false
 
+    /// Append-only meeting transcript built from both speakers. Cleared at the
+    /// start of every recording so a fresh meeting doesn't inherit previous
+    /// content.
+    let transcript = MeetingTranscript()
+
     /// Forwarded from each underlying `Transcriber.onText`. Useful when a UI
     /// layer wants to surface the live transcript instead of only logging it.
     var onText: ((_ label: String, _ text: String, _ isFinal: Bool) -> Void)?
+
+    /// Fires after a finalized utterance is appended to `transcript`. Invoked
+    /// on the recognizer callback queue — consumers must hop to the main actor
+    /// before touching UI.
+    var onTranscriptUpdated: ((MeetingTranscript) -> Void)?
 
     init(
         microphone: MicrophoneCapture,
@@ -45,17 +55,14 @@ nonisolated final class MeetingTranscriber {
     /// either to produce text reliably.
     func start() throws {
         isStopRequested = false
+        transcript.clear()
 
         try micTranscriber.start()
 
         microphone.onBuffer = { [weak self] buffer in
             self?.micTranscriber.append(buffer)
         }
-        micTranscriber.onText = { [weak self] text, isFinal in
-            guard let self else { return }
-            print("[\(self.micTranscriber.label)] \(text)")
-            self.onText?(self.micTranscriber.label, text, isFinal)
-        }
+        wireCallbacks(of: micTranscriber)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
             guard let self, !self.isStopRequested else { return }
@@ -64,15 +71,26 @@ nonisolated final class MeetingTranscriber {
                 self.systemAudio.onBuffer = { [weak self] sample in
                     self?.systemTranscriber.append(sample)
                 }
-                self.systemTranscriber.onText = { [weak self] text, isFinal in
-                    guard let self else { return }
-                    print("[\(self.systemTranscriber.label)] \(text)")
-                    self.onText?(self.systemTranscriber.label, text, isFinal)
-                }
+                self.wireCallbacks(of: self.systemTranscriber)
                 print("System-audio transcriber started (staggered after mic).")
             } catch {
                 print("System-audio transcriber failed to start: \(error.localizedDescription)")
             }
+        }
+    }
+
+    /// Plumbs partial-text logging and the finalized-utterance pipeline into
+    /// the meeting transcript. Same wiring for both speakers.
+    private func wireCallbacks(of source: Transcriber) {
+        source.onText = { [weak self] text, isFinal in
+            guard let self else { return }
+            print("[\(source.label)] \(text)")
+            self.onText?(source.label, text, isFinal)
+        }
+        source.onUtteranceFinalized = { [weak self] text in
+            guard let self else { return }
+            self.transcript.append(speaker: source.label, text: text)
+            self.onTranscriptUpdated?(self.transcript)
         }
     }
 

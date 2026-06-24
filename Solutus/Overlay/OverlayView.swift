@@ -5,9 +5,10 @@ import SwiftUI
 enum OverlayContent {
     case captured(count: Int)
     case loading
-    /// Active audio capture for the HR Meeting Helper. Carries no payload —
-    /// the live transcript and the buffer count surface in later cards.
-    case recording
+    /// Active audio capture for the HR Meeting Helper. Carries the live
+    /// transcript built from finalized utterances — empty string until the
+    /// first one lands.
+    case recording(transcript: String)
     /// `source` identifies which feature responded — rendered as a header at
     /// the top of the response body so the user can disambiguate parallel
     /// flows (Algorithm Helper × Android Helper).
@@ -69,10 +70,9 @@ struct OverlayView: View {
     // Smaller height in capture/loading states, larger for solution/error.
     private var frameHeight: CGFloat {
         switch content {
-        case .captured:  return 110
-        case .loading:   return 110
-        case .recording: return 110
-        default:         return 520
+        case .captured: return 110
+        case .loading:  return 110
+        default:        return 520
         }
     }
 
@@ -100,16 +100,36 @@ struct OverlayView: View {
                     .font(.system(size: 13))
             }
 
-        case .recording:
-            HStack(spacing: 10) {
-                Image(systemName: "waveform")
-                    .foregroundStyle(.red)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Gravando a entrevista...")
-                        .font(.system(size: 13, weight: .medium))
-                    Text("Clique no card novamente para encerrar")
+        case .recording(let transcript):
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "waveform")
+                        .foregroundStyle(.red)
+                    Text("Gravando a entrevista")
+                        .font(.system(size: 13, weight: .semibold))
+                    Spacer()
+                    Text("Clique no card para encerrar")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
+                }
+                HStack(spacing: 6) {
+                    Image(systemName: "headphones")
+                        .foregroundStyle(.secondary)
+                    Text("Use fones de ouvido para evitar que o mic capte o áudio da call")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                Divider().opacity(0.4)
+                if transcript.isEmpty {
+                    Text("Aguardando fala...")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                } else {
+                    Text(transcript)
+                        .font(.system(size: 13))
+                        .lineSpacing(4)
+                        .textSelection(.enabled)
                 }
             }
 

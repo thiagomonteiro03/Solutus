@@ -5,8 +5,11 @@ import Speech
 /// forwards the recognized text. One `Transcriber` per speaker — the HR
 /// Meeting Helper uses two (you + the other party) so transcripts stay labeled.
 ///
-/// Card 4 scope: produce a live stream of recognized text per source. Persisting
-/// and summarizing the transcript lands in the next card.
+/// SFSpeech ends a session on silence ("No speech detected") and after ~1 min,
+/// so we transparently restart it. The restart can't be instantaneous (the
+/// recognizer needs time to tear down), so audio that arrives during the gap is
+/// stashed and replayed into the next session — otherwise the start of whatever
+/// is said right after a pause gets dropped.
 nonisolated final class Transcriber {
 
     /// The speech-recognition authorization decision the app cares about. Pure
@@ -26,24 +29,42 @@ nonisolated final class Transcriber {
     let label: String
 
     private let recognizer: SFSpeechRecognizer?
+
+    // Shared mutable state, guarded by `lock` because audio buffers arrive on
+    // the capture threads while the recognition callback and restart run on
+    // their own queues.
+    private let lock = NSLock()
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
-
-    // Tracks whether the caller still wants us recording. SFSpeech ends the
-    // session on its own (e.g. "No speech detected" after silence, or after
-    // ~1 minute), so we restart the recognition task whenever that happens and
-    // `isActive` is still true — until `stop()` flips it back to false.
     private var isActive = false
+    private var lastPartialText = ""
 
-    // Log the audio format once per buffer kind so we can tell whether the
-    // recognizer is being fed something it can decode without flooding the
-    // console on every frame.
-    private var didLogPCMFormat = false
-    private var didLogSampleFormat = false
+    // Monotonic id for the current recognition session. SFSpeech can invoke a
+    // task's completion handler more than once (e.g. a final result followed by
+    // a cancellation), and each "ended" callback used to schedule its own
+    // restart — spawning duplicate concurrent tasks that compounded until the
+    // recognizer saturated and went deaf. Every session captures its generation;
+    // only the first "ended" callback whose generation still matches gets to
+    // restart, and it bumps the counter so duplicates and stale callbacks are
+    // ignored.
+    private var generation = 0
+
+    // Audio captured while there is no live `request` (the restart gap). Replayed
+    // into the next session so no speech is lost across a restart. Capped so a
+    // long silence can't grow it without bound.
+    private var pendingPCM: [AVAudioPCMBuffer] = []
+    private var pendingSamples: [CMSampleBuffer] = []
+    private let maxPendingBuffers = 80
 
     /// Called whenever the recognizer emits a (partial or final) result. Invoked
     /// on the recognizer's internal queue, not the main actor.
     var onText: ((_ text: String, _ isFinal: Bool) -> Void)?
+
+    /// Called exactly once per closed utterance — either because SFSpeech
+    /// reported `isFinal == true`, or because the session ended (silence
+    /// timeout / user stop) while a partial was in progress. Consumers use this
+    /// to commit a stable line to the meeting transcript.
+    var onUtteranceFinalized: ((_ text: String) -> Void)?
 
     init(label: String, locale: Locale = .current) {
         self.label = label
@@ -76,14 +97,15 @@ nonisolated final class Transcriber {
     /// Starts a recognition task. No-op if already running. Throws if the
     /// recognizer is unavailable for the chosen locale.
     func start() throws {
-        guard !isActive else { return }
+        let alreadyActive = lock.withLock { isActive }
+        guard !alreadyActive else { return }
         try startRecognition(isInitial: true)
-        isActive = true
+        lock.withLock { isActive = true }
     }
 
-    /// Builds a fresh recognition request + task. Called by `start()` and by
-    /// the task completion handler to keep the session going across the silence
-    /// timeouts SFSpeech enforces.
+    /// Builds a fresh recognition request + task and replays any audio captured
+    /// during the restart gap. Called by `start()` and by the task completion
+    /// handler to keep the session going across SFSpeech's silence timeouts.
     private func startRecognition(isInitial: Bool) throws {
         guard let recognizer, recognizer.isAvailable else {
             print("[\(label)] recognizer unavailable (locale=\(recognizer?.locale.identifier ?? "nil"))")
@@ -92,8 +114,6 @@ nonisolated final class Transcriber {
 
         if isInitial {
             print("[\(label)] starting — locale=\(recognizer.locale.identifier) onDevice=\(recognizer.supportsOnDeviceRecognition)")
-            didLogPCMFormat = false
-            didLogSampleFormat = false
         }
 
         let request = SFSpeechAudioBufferRecognitionRequest()
@@ -101,24 +121,57 @@ nonisolated final class Transcriber {
         // Long-form continuous speech, tolerant of brief pauses — matches an
         // HR-meeting conversation better than the default generic hint.
         request.taskHint = .dictation
-        // We intentionally do NOT force on-device recognition: in practice
-        // on-device en-US has been bailing with "No speech detected" within
-        // ~500 ms while server-based handles the same audio fine.
+        // On-device recognition is the right tool for a long meeting: the
+        // server path caps sessions at ~1 minute and finalizes eagerly on every
+        // pause, which fragments continuous speech into choppy pieces. The
+        // on-device model has no such cap and is built for live dictation. The
+        // earlier "No speech detected in 500 ms" came from two recognizers
+        // starting at once, which the 2 s stagger now prevents.
+        if recognizer.supportsOnDeviceRecognition {
+            request.requiresOnDeviceRecognition = true
+        }
 
-        task = recognizer.recognitionTask(with: request) { [weak self] result, error in
+        // Captured by the completion handler so it can tell whether it still
+        // owns the current session (see `generation`).
+        let myGeneration = lock.withLock { generation }
+
+        let task = recognizer.recognitionTask(with: request) { [weak self] result, error in
             guard let self else { return }
+
+            // Drop callbacks from a session that has already ended or been
+            // superseded by a restart — they must not touch live state.
+            if self.lock.withLock({ self.generation != myGeneration }) { return }
+
             if let result {
-                self.onText?(result.bestTranscription.formattedString, result.isFinal)
+                let text = result.bestTranscription.formattedString
+                self.lock.withLock { self.lastPartialText = text }
+                self.onText?(text, result.isFinal)
+                if result.isFinal {
+                    self.commitPendingUtterance()
+                }
             }
             let ended = error != nil || (result?.isFinal ?? false)
             guard ended else { return }
 
-            self.task = nil
-            self.request = nil
+            // Session ended via error (typically "No speech detected") with a
+            // partial in progress — commit whatever we got before tearing down.
+            if error != nil {
+                self.commitPendingUtterance()
+            }
 
-            // Only restart if the caller still wants us recording. When `stop()`
-            // ran first, `isActive` is already false and we let the session die.
-            guard self.isActive else { return }
+            // Claim the end exactly once: bump the generation so any duplicate
+            // callback for this same session is ignored above, and tear down.
+            let stillActive: Bool = self.lock.withLock {
+                guard self.generation == myGeneration else { return false }
+                self.generation += 1
+                self.task = nil
+                self.request = nil
+                return self.isActive
+            }
+
+            // Only restart if we won the claim AND the caller still wants us
+            // recording. When `stop()` ran first, `isActive` is already false.
+            guard stillActive else { return }
 
             // SFSpeech ends sessions on every silence pause with "No speech
             // detected" — expected during a meeting, no point spamming the
@@ -130,10 +183,11 @@ nonisolated final class Transcriber {
             // Defer the restart so SFSpeech can fully tear down the previous
             // session before we ask it to start a new one. Synchronous
             // recursion from inside the callback has shown odd states in
-            // practice (recognizer "starts" but never emits partials).
+            // practice (recognizer "starts" but never emits partials). Audio
+            // arriving during this gap is stashed and replayed below.
             let label = self.label
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-                guard let self, self.isActive else { return }
+                guard let self, self.lock.withLock({ self.isActive }) else { return }
                 do {
                     try self.startRecognition(isInitial: false)
                 } catch {
@@ -141,41 +195,75 @@ nonisolated final class Transcriber {
                 }
             }
         }
-        self.request = request
+
+        // Publish the new request and flush the gap audio into it atomically so
+        // an append racing in can't slip between the two.
+        lock.withLock {
+            self.request = request
+            self.task = task
+            for buffer in pendingPCM { request.append(buffer) }
+            for sample in pendingSamples { request.appendAudioSampleBuffer(sample) }
+            pendingPCM.removeAll()
+            pendingSamples.removeAll()
+        }
     }
 
     /// Appends a PCM buffer from the microphone tap.
     func append(_ buffer: AVAudioPCMBuffer) {
-        if !didLogPCMFormat {
-            didLogPCMFormat = true
-            let format = buffer.format
-            print("[\(label)] first PCM buffer — sampleRate=\(format.sampleRate) channels=\(format.channelCount) commonFormat=\(format.commonFormat.rawValue)")
+        lock.withLock {
+            if let request {
+                request.append(buffer)
+            } else if isActive {
+                pendingPCM.append(buffer)
+                if pendingPCM.count > maxPendingBuffers { pendingPCM.removeFirst() }
+            }
         }
-        request?.append(buffer)
     }
 
     /// Appends a sample buffer from a ScreenCaptureKit audio stream.
     func append(_ sampleBuffer: CMSampleBuffer) {
-        if !didLogSampleFormat {
-            didLogSampleFormat = true
-            if let desc = CMSampleBufferGetFormatDescription(sampleBuffer),
-               let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(desc)?.pointee {
-                print("[\(label)] first sample buffer — sampleRate=\(asbd.mSampleRate) channels=\(asbd.mChannelsPerFrame) bitsPerChannel=\(asbd.mBitsPerChannel)")
-            } else {
-                print("[\(label)] first sample buffer — no format description")
+        lock.withLock {
+            if let request {
+                request.appendAudioSampleBuffer(sampleBuffer)
+            } else if isActive {
+                pendingSamples.append(sampleBuffer)
+                if pendingSamples.count > maxPendingBuffers { pendingSamples.removeFirst() }
             }
         }
-        request?.appendAudioSampleBuffer(sampleBuffer)
     }
 
     /// Ends the audio stream and cancels the recognition task. Safe to call
     /// when idle. Flipping `isActive` BEFORE cancelling prevents the completion
     /// handler from restarting the session on the way out.
     func stop() {
-        isActive = false
-        request?.endAudio()
-        task?.cancel()
-        task = nil
-        request = nil
+        let (oldRequest, oldTask) = lock.withLock { () -> (SFSpeechAudioBufferRecognitionRequest?, SFSpeechRecognitionTask?) in
+            isActive = false
+            generation += 1   // invalidate any in-flight session callbacks
+            let r = request
+            let t = task
+            request = nil
+            task = nil
+            pendingPCM.removeAll()
+            pendingSamples.removeAll()
+            return (r, t)
+        }
+        oldRequest?.endAudio()
+        oldTask?.cancel()
+        // The cancelled task may not fire its completion handler in time, so
+        // commit any partial we'd otherwise lose at the end of the meeting.
+        commitPendingUtterance()
+    }
+
+    /// Emits `onUtteranceFinalized` with the last partial and clears it. No-op
+    /// when there's nothing pending.
+    private func commitPendingUtterance() {
+        let pending: String = lock.withLock {
+            let value = lastPartialText
+            lastPartialText = ""
+            return value
+        }
+        let trimmed = pending.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        onUtteranceFinalized?(trimmed)
     }
 }
