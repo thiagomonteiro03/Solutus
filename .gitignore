@@ -20,3 +20,7 @@ DerivedData/
 *.env
 .env
 secrets.plist
+
+# Claude Code — worktrees de agente e settings locais (não versionar)
+.claude/worktrees/
+.claude/settings.local.json
